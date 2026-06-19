@@ -1,20 +1,42 @@
+<div align="center">
+
 # ⛓️ onchain-poc-runner
 
-> **Automated fork-state capture and PoC replay harness for smart contract bug reports.**
+### *Automated fork-state capture and PoC replay harness.*
 
-The harness you wish you had when you were writing your first HackenProof submission. Automates the boring parts of PoC development: state capture, replay, fund impact calculation, and report generation.
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Foundry](https://img.shields.io/badge/Foundry-required-000000?style=flat-square)](https://book.getfoundry.sh/)
+[![PoC Templates](https://img.shields.io/badge/templates-8-success?style=flat-square)](#-poc-templates)
+[![Forks](https://img.shields.io/badge/forks-5%20chains-blueviolet?style=flat-square)](#-supported-chains)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+
+</div>
+
+---
+
+## 🎯 The Problem
+
+Writing a PoC is 5% exploit logic and 95% plumbing:
+- Capture state before/after
+- Calculate fund impact in wei and USD
+- Run on multiple chains/forks
+- Format the report so a triager reads it
+- Generate traces and screenshots
+
+**onchain-poc-runner** automates the 95% so you can focus on the 5%.
 
 ---
 
 ## ✨ Features
 
-- 🎯 **Pre-built PoC templates** — 8 patterns covering 90% of DeFi bug types
+- 🎯 **8 pre-built PoC templates** — covering 90% of DeFi bug types
 - 🔄 **Replay harness** — Run any PoC on multiple forks (Ethereum, Arbitrum, Base, Optimism, Ink)
 - 📊 **State diff engine** — Capture before/after storage, calculate fund impact in wei and USD
 - 📝 **Auto-report generation** — Markdown, PDF, or HTML submission drafts
 - 🖼️ **Screenshot capture** — Foundry traces → PNG flow diagrams
 - 🤖 **Multi-PoC orchestration** — Run a target's full PoC suite in one command
 - 🔗 **GitHub integration** — Auto-push PoC to your writeups repo
+- 🎨 **Pretty terminal output** — Live progress, color-coded severity, fund-impact summary
 
 ---
 
@@ -34,141 +56,100 @@ pip install -e .
 
 ### Requirements
 
-- Python 3.8+
+- Python 3.10+
 - Foundry (`forge`, `cast`, `anvil`)
-- `requests`, `jinja2`, `web3`, `pyyaml`
+- Graphviz (for trace diagrams)
 
 ---
 
-## 🚀 Usage
-
-### Initialize a new PoC
+## 🚀 Quick Start
 
 ```bash
-onchain-poc init --name my-poc --target NadoProtocol --type fund-conservation
-```
+# Initialize a new PoC project from a template
+onchain-poc init liquidation-poc --template 01-liquidation
 
-This creates:
-```
-my-poc/
-├── src/
-│   └── MyPoC.sol
-├── test/
-│   └── MyPoC.t.sol
-├── poc.yaml
-└── reports/
-```
+# Edit the generated PoC: write your exploit logic in src/Exploit.t.sol
 
-### Run PoC
+# Run on a fork
+onchain-poc run --fork ethereum --block 19500000
 
-```bash
-onchain-poc run --rpc $MAINNET_RPC --block 19000000
-```
+# Run on all forks
+onchain-poc run --all-forks --block 19500000
 
-### Generate report
+# Generate a submission draft
+onchain-poc report --format markdown > submission.md
 
-```bash
-onchain-poc report --format markdown --output report.md
-```
-
-### Multi-chain replay
-
-```bash
-onchain-poc run --chain mainnet,arbitrum,base --block latest
+# Push to your writeups repo
+onchain-poc push --repo AbD02018/Bug-Bounty-Writeups-and-PoCs
 ```
 
 ---
 
-## 📂 PoC Templates
+## 📚 PoC Templates
 
-| Template | Use For |
-|---|---|
-| `fund-conservation` | Drain, balance miscalculation |
-| `liquidation-bound` | Liquidation gives attacker more than owed |
-| `oracle-staleness` | Stale price allows bad debt |
-| `signature-forgery` | EIP-712 replay, ecrecover misuse |
-| `reentrancy` | Cross-function reentrancy |
-| `access-control` | Function permission bypass |
-| `fee-evasion` | Bypassing protocol fees |
-| `governance` | Vote manipulation, quorum bypass |
+| # | Template | Use case |
+|---|---|---|
+| 01 | **Liquidation** | Seize collateral from underwater positions |
+| 02 | **Oracle Manipulation** | Spot oracle + flash loan attack |
+| 03 | **Fund Conservation** | Deposit/withdraw loop + rounding check |
+| 04 | **Governance Attack** | Flash-loan vote + malicious proposal |
+| 05 | **Reentrancy** | Single-fn + cross-fn reentrancy |
+| 06 | **Access Control Bypass** | Direct call to admin function |
+| 07 | **Signature Replay** | EIP-712 replay across chains/domains |
+| 08 | **First Deposit Inflation** | ERC-4626 vault inflation |
 
----
-
-## 📖 Example
-
-```bash
-$ onchain-poc init --name nado-fund-drain --target NadoProtocol --type fund-conservation
-[+] Created PoC structure at ./nado-fund-drain
-[+] Loaded template: fund-conservation
-[+] Edit src/NadoFundDrain.sol and test/NadoFundDrain.t.sol
-
-$ cd nado-fund-drain
-# (edit the PoC to replicate the bug)
-
-$ onchain-poc run --rpc $MAINNET_RPC --block 47998473
-[+] Forking mainnet at block 47,998,473
-[+] Deploying attacker contract
-[+] Running exploit
-[+] Capturing state diff...
-
-=== State Diff ===
-attacker.balance  : 0.0 ETH -> 127.3 ETH (+127.3 ETH)
-protocol.balance   : 1,247.5 ETH -> 1,120.2 ETH (-127.3 ETH)
-LP_token.totalSupply : 1,000,000 -> 1,000,000 (no change)
-
-[+] Impact: +127.3 ETH (~$382,000 USD at $3000/ETH)
-[+] PoC PASSED — economic impact proven
-
-$ onchain-poc report --format markdown
-[+] Report generated: report.md
-```
+> **Need a new template?** Open an issue with the bug class.
 
 ---
 
-## 🏗️ Architecture
+## 🌐 Supported Chains
 
-```
-onchain-poc-runner/
-├── onchain_poc/
-│   ├── cli.py                 # Click-based CLI
-│   ├── core/
-│   │   ├── runner.py          # PoC orchestrator
-│   │   ├── state_diff.py      # Before/after capture
-│   │   ├── impact.py          # Fund impact in wei/USD
-│   │   └── report.py          # Markdown/PDF/HTML generation
-│   ├── templates/
-│   │   ├── fund_conservation/
-│   │   ├── liquidation_bound/
-│   │   └── ... (8 total)
-│   └── integrations/
-│       ├── foundry.py         # forge wrapper
-│       ├── etherscan.py       # Contract source fetcher
-│       ├── coingecko.py       # Price feed
-│       └── github.py          # Auto-push
-├── examples/
-│   ├── nado-fund-drain/
-│   └── aave-liquidation/
-└── pyproject.toml
-```
+| Chain | ID | RPC Env Var |
+|---|---|---|
+| **Ethereum** | 1 | `ETH_RPC_URL` |
+| **Arbitrum One** | 42161 | `ARB_RPC_URL` |
+| **Base** | 8453 | `BASE_RPC_URL` |
+| **Optimism** | 10 | `OP_RPC_URL` |
+| **Ink** | 57073 | `INK_RPC_URL` |
+
+Add your own chain via `~/.config/onchain-poc-runner/chains.toml`.
 
 ---
 
-## 📄 License
+## 🛠️ CLI Reference
 
-MIT — see [LICENSE](LICENSE)
+```
+onchain-poc init <name> [--template N]    Initialize a new PoC project
+onchain-poc run [--fork <chain>]          Run PoC on a single fork
+onchain-poc run --all-forks                Run PoC on all configured forks
+onchain-poc report [--format <fmt>]       Generate submission draft
+onchain-poc push --repo <owner/repo>      Push to your writeups repo
+onchain-poc diff <before> <after>         Generate state diff
+onchain-poc impact <tx-hash> <chain>      Calculate fund impact of a tx
+onchain-poc templates list                List all available templates
+onchain-poc chains list                   List all configured chains
+```
 
 ---
 
 ## 🤝 Contributing
 
-1. Add a new PoC template to `onchain_poc/templates/`
-2. Add a real-world example to `examples/`
-3. Submit PR with bug bounty submission that used the template
+PRs welcome for:
+- New PoC templates
+- New chain support
+- Better state-diff utilities
+- Report-format improvements
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE).
 
 ---
 
 <div align="center">
-
-*Capture state. Replicate. Calculate impact. Submit.*
-
+  <sub>Built by <a href="https://github.com/AbD02018">@AbD02018</a> · Smart contract security researcher</sub>
 </div>
